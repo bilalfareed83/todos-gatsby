@@ -1,8 +1,9 @@
-const { ApolloServer, gql } = require("apollo-server-lambda")
-var faunadb = require("faunadb")
-q = faunadb.query
+const { ApolloServer, gql } = require("apollo-server-lambda");
+var faunadb = require("faunadb"),
+  q = faunadb.query;
 
-require("dotenv").config()
+require("dotenv").config();
+
 const typeDefs = gql`
   type Query {
     todos: [Todo!]
@@ -15,43 +16,50 @@ const typeDefs = gql`
     task: String!
     status: Boolean!
   }
-`
+`;
 
 const resolvers = {
   Query: {
     todos: async (root, args, context) => {
-      // return "Hello, world!"
       try {
         var adminClient = new faunadb.Client({
           secret: process.env.YOUR_FAUNADB_ADMIN_SECRET,
-        })
-
+        });
         const result = await adminClient.query(
           q.Map(
             q.Paginate(q.Match(q.Index("task"))),
-            q.Lambda(x => q.Get(x))
+            q.Lambda((x) => q.Get(x))
           )
-        )
-        console.log(result.ref.data)
-      } catch (error) {
-        console.log(error)
+        );
+        console.log(result.data);
+        return [
+          {
+            task: "Bilal",
+            id: "25",
+          },
+        ];
+        // return result.data.map((d) => {
+        //   return {
+        //     id: d.ts,
+        //     status: d.data.status,
+        //     task: d.data.task,
+        //   };
+        // });
+      } catch (err) {
+        console.log(err);
       }
     },
-    // allAuthors: () => authors,
-    // author: () => {},
-    // authorByName: (root, args) => {
-    //   console.log("hihhihi", args.name)
-    //   return authors.find(author => author.name === args.name) || "NOTFOUND"
+    // authorByName: (root, args, context) => {
+    //   console.log('hihhihi', args.name)
+    //   return authors.find(x => x.name === args.name) || 'NOTFOUND'
     // },
   },
-
   Mutation: {
     addTodo: async (_, { task }) => {
       try {
         var adminClient = new faunadb.Client({
-          secret: process.env.YOUR_FAUNADB_ADMIN_SECRET,
-        })
-
+          secret: "fnAD3k5_3EACB6gCBsRr3R3wpEKT_uo1PpVFackm",
+        });
         const result = await adminClient.query(
           q.Create(q.Collection("todos"), {
             data: {
@@ -59,19 +67,18 @@ const resolvers = {
               status: true,
             },
           })
-        )
-      } catch (error) {
-        console.log(error)
+        );
+        return result.ref.data;
+      } catch (err) {
+        console.log(err);
       }
     },
   },
-}
+};
 
 const server = new ApolloServer({
   typeDefs,
   resolvers,
-})
+});
 
-const handler = server.createHandler()
-
-module.exports = { handler }
+exports.handler = server.createHandler();
